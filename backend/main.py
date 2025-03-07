@@ -12,8 +12,8 @@ init_db()
 
 # 創建FastAPI應用
 app = FastAPI(
-    title="點數交易系統 API",
-    description="點數交易系統後端API，支持用戶註冊、登入、發送和接收點數等功能\n\n"
+    title="XX幣交易系統 API",
+    description="XX幣交易系統後端API，支持用戶註冊、登入、發送和接收XX幣等功能\n\n"
                "**認證流程**:\n"
                "1. 點擊右上角的 'Authorize' 按鈕\n"
                "2. 在彈出的對話框中輸入用戶信箱(test@example.com)和密碼(password123)\n"
@@ -72,7 +72,7 @@ app.include_router(transactions.router, prefix="/api/transactions", tags=["交�
 
 @app.get("/")
 async def root():
-    return {"message": "點數交易系統API服務運行中"}
+    return {"message": "XX幣交易系統API服務運行中"}
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)

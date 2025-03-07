@@ -2,11 +2,11 @@
   <div class="dashboard-container">
     <div class="dashboard-header">
       <h2>歡迎，{{ user ? user.name : '用戶' }}</h2>
-      <p class="balance">點數餘額: <span>{{ user ? user.balance : 0 }}</span></p>
+      <p class="balance">XX幣餘額: <span>{{ user ? user.balance : 0 }}</span></p>
 
       <div class="action-buttons">
-        <router-link to="/send" class="btn btn-primary">發送點數</router-link>
-        <router-link to="/receive" class="btn btn-secondary">接收點數</router-link>
+        <router-link to="/send" class="btn btn-primary">發送XX幣</router-link>
+        <router-link to="/receive" class="btn btn-secondary">接收XX幣</router-link>
       </div>
     </div>
 

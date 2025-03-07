@@ -1,6 +1,6 @@
 <template>
   <div class="receive-points-container">
-    <h2>接收點數</h2>
+    <h2>接收XX幣</h2>
 
     <div v-if="error" class="error-message">
       {{ error }}
@@ -16,7 +16,7 @@
           返回首頁
         </button>
         <button class="btn btn-secondary" @click="resetReceiver">
-          接收更多點數
+          接收更多XX幣
         </button>
       </div>
     </div>
@@ -45,7 +45,7 @@
     </div>
 
     <div v-else class="scanner-section">
-      <p class="instructions">請掃描發送方的 QR Code以接收點數</p>
+      <p class="instructions">請掃描發送方的 QR Code以接收XX幣</p>
 
       <QRCodeScanner :on-scan="handleScan" />
 
@@ -124,7 +124,7 @@ export default {
         }
 
         if (transaction.senderId === user.value.userId) {
-          throw new Error('不能接收自己發送的點數');
+          throw new Error('不能接收自己發送的XX幣');
         }
 
         scannedTransaction.value = transaction;
@@ -193,7 +193,7 @@ export default {
           // 檢查用戶不存在的錯誤
           if (status === 404 || errorDetail === 'user_not_found' ||
               errorDetail.includes('用戶不存在') || errorDetail.includes('user not found')) {
-            error.value = '您似乎還未註冊。註冊後即可接收點數。';
+            error.value = '您似乎還未註冊。註冊後即可接收XX幣。';
             return;
           }
         }

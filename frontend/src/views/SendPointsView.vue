@@ -1,6 +1,6 @@
 <template>
   <div class="send-points-container">
-    <h2>發送點數</h2>
+    <h2>發送XX幣</h2>
     <p class="current-balance">目前餘額: {{ user ? user.balance : 0 }}</p>
 
     <div v-if="error" class="error-message">
@@ -8,9 +8,20 @@
     </div>
 
     <div v-if="!transactionData">
+      <div class="quick-amount-buttons">
+        <button
+          v-for="(value, index) in quickAmounts"
+          :key="index"
+          class="quick-amount-btn"
+          @click="selectQuickAmount(value)"
+          :disabled="value > (user?.balance || 0)">
+          {{ value }} 點
+        </button>
+      </div>
+
       <form @submit.prevent="handleGenerateQR" class="send-form">
         <div class="form-group">
-          <label for="amount">點數金額</label>
+          <label for="amount">XX幣金額</label>
           <input
             type="number"
             id="amount"
@@ -18,7 +29,7 @@
             required
             min="1"
             step="1"
-            placeholder="請輸入點數金額"
+            placeholder="請輸入XX幣金額"
           />
         </div>
 
@@ -92,6 +103,13 @@ export default {
     const transactionData = ref(null);
     const qrCodeContent = ref('');
 
+    // 從環境變數中獲取預設金額
+    const quickAmounts = ref([
+      parseInt(import.meta.env.VITE_QUICK_AMOUNT_1 || '10'),
+      parseInt(import.meta.env.VITE_QUICK_AMOUNT_2 || '50'),
+      parseInt(import.meta.env.VITE_QUICK_AMOUNT_3 || '100')
+    ]);
+
     const user = computed(() => store.getters.currentUser);
 
     const isAmountValid = computed(() => {
@@ -110,7 +128,7 @@ export default {
 
     const handleGenerateQR = async () => {
       if (!isAmountValid.value) {
-        error.value = '請輸入有效的點數金額（必須大於0且不超過您的餘額）';
+        error.value = '請輸入有效的XX幣金額（必須大於0且不超過您的餘額）';
         return;
       }
 
@@ -118,11 +136,9 @@ export default {
       isLoading.value = true;
 
       try {
-        // 只包含後端API需要的字段
         const transactionRequest = {
           amount: parseFloat(amount.value),
           note: note.value
-          // 不需要發送者信息，後端會從token中獲取
         };
 
         // 發送到服務商獲取簽名交易
@@ -167,6 +183,17 @@ export default {
       }
     };
 
+    // 選擇快捷金額並直接生成QR碼
+    const selectQuickAmount = async (value) => {
+      if (value > (user.value?.balance || 0)) {
+        error.value = '選擇的金額超過您的餘額';
+        return;
+      }
+
+      amount.value = value.toString();
+      await handleGenerateQR();
+    };
+
     return {
       user,
       amount,
@@ -180,7 +207,9 @@ export default {
       handleGenerateQR,
       handleReset,
       handleCancel,
-      handleCancelTransaction
+      handleCancelTransaction,
+      quickAmounts,
+      selectQuickAmount
     };
   }
 }
@@ -194,6 +223,34 @@ export default {
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.quick-amount-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.quick-amount-btn {
+  flex: 1;
+  padding: 0.75rem;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.quick-amount-btn:hover {
+  background-color: #2980b9;
+}
+
+.quick-amount-btn:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
 }
 
 h2 {

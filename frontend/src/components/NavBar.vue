@@ -1,15 +1,15 @@
 <template>
   <nav class="navbar">
     <div class="navbar-brand">
-      <router-link to="/" class="navbar-logo">點數交易系統</router-link>
+      <router-link to="/" class="navbar-logo">XX幣交易系統</router-link>
     </div>
 
     <div class="navbar-menu" v-if="isAuthenticated">
-      <span class="balance" v-if="user">點數餘額: {{ user.balance }}</span>
+      <span class="balance" v-if="user">XX幣餘額: {{ user.balance }}</span>
       <div class="navbar-links">
         <router-link to="/" class="navbar-item">首頁</router-link>
-        <router-link to="/send" class="navbar-item">發送點數</router-link>
-        <router-link to="/receive" class="navbar-item">接收點數</router-link>
+        <router-link to="/send" class="navbar-item">發送XX幣</router-link>
+        <router-link to="/receive" class="navbar-item">接收XX幣</router-link>
         <button @click="handleLogout" class="logout-btn">登出</button>
       </div>
     </div>

@@ -54,7 +54,7 @@
       </div>
 
       <div v-if="redirectTransactionId" class="redirect-info">
-        <p>註冊後您將能夠領取之前的交易點數</p>
+        <p>註冊後您將能夠領取之前的交易XX幣</p>
       </div>
 
       <div class="form-actions">

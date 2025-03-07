@@ -6,7 +6,7 @@
       {{ error }}
 
       <div v-if="isUserNotRegistered" class="register-prompt">
-        <p>您似乎還未註冊。註冊後即可接收點數。</p>
+        <p>您似乎還未註冊。註冊後即可接收XX幣。</p>
         <button class="btn btn-primary" @click="redirectToRegister">
           立即註冊
         </button>
@@ -47,7 +47,7 @@
             required
             placeholder="請輸入您的Email"
           />
-          <small class="help-text">請輸入您在系統中的Email以接收點數</small>
+          <small class="help-text">請輸入您在系統中的Email以接收XX幣</small>
         </div>
 
         <div class="confirm-actions">
@@ -175,9 +175,8 @@ export default {
           errorMessage.includes('用戶不存在') ||
           errorMessage.includes('user_not_found')
         ) {
-          console.log('設置用戶未註冊標誌為true');
           isUserNotRegistered.value = true;
-          error.value = '您使用的郵箱尚未註冊。您可以繼續接收點數，或者註冊帳號以便管理您的點數。';
+          error.value = '您使用的信箱尚未註冊。';
         } else {
           error.value = errorMessage || '確認交易失敗';
         }

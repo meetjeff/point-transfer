@@ -67,7 +67,7 @@ export const login = async ({ email, password }) => {
       // 請求設置出錯
       console.error('請求錯誤:', error.message);
     }
-    throw error;
+    throw new Error(error.response?.data?.detail || '登入失敗');
   }
 };
 
@@ -122,6 +122,6 @@ export const register = async ({ name, email, password }) => {
     });
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.message || '註冊失敗');
+    throw new Error(error.response?.data?.detail || '註冊失敗');
   }
 };
