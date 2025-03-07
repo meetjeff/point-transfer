@@ -1,0 +1,24 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "jeff.hsu", email = "adf159776@gmail.com" }
+]
+dependencies = [
+    "fastapi==0.104.1",
+    "uvicorn==0.23.2",
+    "pydantic[email]>=2.10.6",
+    "python-jose==3.3.0",
+    "passlib==1.7.4",
+    "python-multipart==0.0.6",
+    "bcrypt==4.0.1",
+    "fastapi-camelcase>=2.0.0",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[tool.rye]
+managed = true
+virtual = true
+dev-dependencies = []
