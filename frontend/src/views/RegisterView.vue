@@ -125,8 +125,8 @@ export default {
 
         // 註冊成功後重定向
         if (redirectTransactionId.value && redirectTransactionData.value) {
-          // 重定向回交易頁面，傳遞用戶ID
-          router.push(`/transaction/${redirectTransactionId.value}?data=${redirectTransactionData.value}&userId=${userData.userId}`);
+          // 重定向回交易頁面，傳遞用戶email
+          router.push(`/transaction/${redirectTransactionId.value}?data=${redirectTransactionData.value}&email=${userData.email}`);
         } else {
           // 重定向到登入頁面
           router.push('/login');

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { mockTransactions, generateTransactionId, mockUser } from './mockData';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_BACKEND || '/api';
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'; // 啟用模擬模式
 
 // 內存存儲模擬交易
@@ -23,10 +23,22 @@ export const getTransactions = async () => {
   }
 
   try {
-    const response = await axios.get(`${API_URL}/transactions`);
+    const response = await axios.get(`${API_URL}/transactions/`); // 添加末尾斜杠
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.message || '獲取交易記錄失敗');
+    console.error('獲取交易記錄失敗:', error);
+    if (error.response) {
+      console.error('API錯誤響應:', {
+        狀態: error.response.status,
+        數據: error.response.data,
+        頭信息: error.response.headers
+      });
+    } else if (error.request) {
+      console.error('未收到響應:', error.request);
+    } else {
+      console.error('請求設置錯誤:', error.message);
+    }
+    throw new Error(error.response?.data?.detail || '獲取交易記錄失敗');
   }
 };
 

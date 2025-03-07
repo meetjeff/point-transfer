@@ -1,0 +1,90 @@
+variables:
+  BACKEND_IMAGE: $CI_PROJECT_NAME/backend
+  BACKEND_CONTAINER: $CI_PROJECT_NAME-backend
+
+backend-build-deploy:
+  tags:
+    - docker-socket-binding
+  stage: backend-build-deploy
+  image: docker:24.0.5
+  when: manual
+  variables:
+    BACKEND_PORT: $BACKEND_PORT
+  before_script:
+    - |
+      docker build backend \
+      -t $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA \
+      -t $BACKEND_IMAGE:latest \
+      --no-cache
+  script:
+    - docker-compose down backend && docker-compose up backend -d
+
+backend-push-harbor:
+  tags:
+    - docker-socket-binding
+  stage: backend-push-harbor
+  when: manual
+  image: docker:24.0.5
+  before_script:
+    - echo $HARBOR_PASSWORD | docker login --username $HARBOR_USER --password-stdin http://$HARBOR_ADDRESS
+  script:
+    - docker tag $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA $HARBOR_ADDRESS/$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker tag $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA $HARBOR_ADDRESS/$BACKEND_IMAGE:latest
+    - docker push --all-tags $HARBOR_ADDRESS/$BACKEND_IMAGE
+
+backend-push-gar:
+  tags:
+    - docker-socket-binding
+  stage: backend-push-gar
+  when: manual
+  image: docker:24.0.5
+  before_script:
+    - echo $GAR_SA_KEY > gcloud-auth.json
+    - cat gcloud-auth.json | docker login -u _json_key --password-stdin https://$GAR_ADDRESS
+  script:
+    - docker tag $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA $GAR_ADDRESS/$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker tag $BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA $GAR_ADDRESS/$BACKEND_IMAGE:latest
+    - docker push --all-tags $GAR_ADDRESS/$BACKEND_IMAGE
+
+backend-deploy-harbor:
+  tags:
+    - docker-socket-binding
+  stage: backend-deploy-harbor
+  when: manual
+  image: docker:24.0.5
+  variables:
+    BACKEND_PORT: $BACKEND_PORT
+  before_script:
+    - echo $HARBOR_PASSWORD | docker login --username $HARBOR_USER --password-stdin http://$HARBOR_ADDRESS
+  script:
+    - |
+      docker-compose pull && \
+      docker-compose down backend && \
+      docker-compose up backend -d"
+
+backend-deploy-gar:
+  tags:
+    - docker-socket-binding
+  stage: backend-deploy-gar
+  when: manual
+  image: docker:24.0.5
+  variables:
+    BACKEND_PORT: $BACKEND_PORT
+  before_script:
+    - echo $GAR_SA_KEY > gcloud-auth.json
+    - cat gcloud-auth.json | docker login -u _json_key --password-stdin https://$GAR_ADDRESS
+  script:
+    - |
+      docker-compose pull && \
+      docker-compose down backend && \
+      docker-compose up backend -d"
+
+backend-destroy:
+  tags:
+    - docker-socket-binding
+  stage: backend-destroy
+  when: manual
+  image: docker:24.0.5
+  script:
+    - docker-compose down backend
+    - docker rmi -f $(docker images | grep -i ${BACKEND_IMAGE} | awk '{print $3}') || true

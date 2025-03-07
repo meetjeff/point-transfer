@@ -33,7 +33,7 @@
         <p v-if="transaction.note"><strong>備註:</strong> {{ transaction.note }}</p>
         <p><strong>交易ID:</strong> {{ transaction.transactionId }}</p>
         <p v-if="transaction.expiresAt">
-          <strong>有效期至:</strong> {{ formatDate(transaction.expiresAt) }}
+          <strong>有效期至:</strong> <LocalTime :datetime="transaction.expiresAt" format="full" checkExpiry />
         </p>
       </div>
 
@@ -68,9 +68,13 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { confirmPublicTransaction } from '../services/api';
+import LocalTime from '../components/LocalTime.vue';
 
 export default {
   name: 'PublicTransactionView',
+  components: {
+    LocalTime
+  },
   setup() {
     const route = useRoute();
     const router = useRouter();
@@ -88,9 +92,9 @@ export default {
         return;
       }
 
-      // 如果有userId參數，自動填充
-      if (route.query.userId) {
-        receiverEmail.value = route.query.userId;
+      // 如果有email參數，自動填充
+      if (route.query.email) {
+        receiverEmail.value = route.query.email;
       }
 
       try {

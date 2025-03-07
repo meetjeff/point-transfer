@@ -2,30 +2,75 @@
   <div class="qrcode-container">
     <div class="qrcode" v-if="qrCodeValue">
       <!-- 使用vue-qrcode-component -->
-      <qrcode-vue :value="qrCodeUrl" :size="256" level="H" />
+      <qrcode-vue
+        :value="useLightMode ? simplifiedUrl : qrCodeUrl"
+        :size="qrSize"
+        :level="qrLevel"
+        :background="backgroundColor"
+        :foreground="foregroundColor"
+        :margin="qrMargin"
+      />
 
       <div class="transaction-details">
         <p class="transaction-id">交易ID: {{ transactionId }}</p>
         <p class="amount">金額: {{ amount }} 點</p>
         <p class="expiry" v-if="expiryTime">
-          有效期至: {{ formatExpiryTime }}
+          有效期至: <LocalTime :datetime="expiryTime" format="full" checkExpiry />
         </p>
+      </div>
+
+      <div class="qr-settings">
+        <div class="setting">
+          <label>QR Code 尺寸:</label>
+          <select v-model="qrSize">
+            <option value="256">標準 (256px)</option>
+            <option value="300">較大 (300px)</option>
+            <option value="350">大 (350px)</option>
+            <option value="400">超大 (400px)</option>
+            <option value="450">巨大 (450px)</option>
+            <option value="500">特大 (500px)</option>
+          </select>
+        </div>
+        <div class="setting">
+          <label>錯誤糾正級別:</label>
+          <select v-model="qrLevel">
+            <option value="L">低 (7%)</option>
+            <option value="M">中 (15%)</option>
+            <option value="Q">較高 (25%)</option>
+            <option value="H">高 (30%)</option>
+          </select>
+        </div>
+        <div class="setting">
+          <label>邊距:</label>
+          <select v-model="qrMargin">
+            <option value="0">無邊距</option>
+            <option value="1">小 (1模塊)</option>
+            <option value="2">中 (2模塊)</option>
+            <option value="4">大 (4模塊)</option>
+          </select>
+        </div>
+        <div class="setting checkbox">
+          <input type="checkbox" id="lightMode" v-model="useLightMode">
+          <label for="lightMode">使用簡化模式 (僅包含ID)</label>
+        </div>
       </div>
     </div>
     <div class="qrcode-placeholder" v-else>
-      <p>填寫交易資料後產生QR碼</p>
+      <p>填寫交易資料後產生QR Code</p>
     </div>
   </div>
 </template>
 
 <script>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import QrcodeVue from 'qrcode.vue';
+import LocalTime from './LocalTime.vue';
 
 export default {
   name: 'QRCodeGenerator',
   components: {
-    QrcodeVue
+    QrcodeVue,
+    LocalTime
   },
   props: {
     qrCodeValue: {
@@ -46,11 +91,29 @@ export default {
     }
   },
   setup(props) {
+    // 可調整的二維碼設置
+    const qrLevel = ref('L'); // 預設使用低級別的錯誤糾正
+    const qrSize = ref(400); // 預設使用更大尺寸
+    const qrMargin = ref(4); // 預設使用較大邊距
+    const backgroundColor = ref('#ffffff');
+    const foregroundColor = ref('#000000');
+    const useLightMode = ref(true); // 預設使用簡化模式
+
     const formatExpiryTime = computed(() => {
       if (!props.expiryTime) return '';
 
       const date = new Date(props.expiryTime);
+      console.log('expiryTime:', props.expiryTime);
+      console.log('date:', date.toLocaleString());
       return date.toLocaleString();
+    });
+
+    // 生成簡化版URL，僅包含交易ID
+    const simplifiedUrl = computed(() => {
+      if (!props.transactionId) return '';
+      // 簡化模式下只包含交易ID
+      const baseUrl = window.location.origin;
+      return `${baseUrl}/transaction/${props.transactionId}`;
     });
 
     // 生成包含交易資訊的URL
@@ -65,9 +128,9 @@ export default {
         const transaction = JSON.parse(props.qrCodeValue);
 
         console.log('交易數據:', {
-          完整数据: transaction,
+          完整數據: transaction,
           交易ID: transaction.transactionId,
-          类型: typeof transaction.transactionId
+          類型: typeof transaction.transactionId
         });
 
         // 確保交易ID存在且一致
@@ -94,7 +157,14 @@ export default {
 
     return {
       formatExpiryTime,
-      qrCodeUrl
+      qrCodeUrl,
+      simplifiedUrl,
+      qrLevel,
+      qrSize,
+      qrMargin,
+      backgroundColor,
+      foregroundColor,
+      useLightMode
     };
   }
 }
@@ -139,5 +209,30 @@ export default {
 .expiry {
   color: #e74c3c;
   font-weight: bold;
+}
+
+.qr-settings {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.setting.checkbox {
+  cursor: pointer;
+}
+
+.setting select {
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #ddd;
 }
 </style>

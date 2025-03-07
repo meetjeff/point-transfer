@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { mockUser } from './mockData';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_BACKEND || '/api';
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true' || !API_URL;
 
 // 設置請求攔截器，添加認證token

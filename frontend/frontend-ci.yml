@@ -1,0 +1,102 @@
+variables:
+  FRONTEND_IMAGE: $CI_PROJECT_NAME/frontend
+  FRONTEND_CONTAINER: $CI_PROJECT_NAME-frontend
+
+cache:
+  paths:
+    - node_modules/
+
+frontend-build-deploy:
+  tags:
+    - docker-socket-binding
+  stage: frontend-build-deploy
+  image: node:18
+  when: manual
+  variables:
+    FRONTEND_PORT: $FRONTEND_PORT
+    BACKEND_PORT: $BACKEND_PORT
+    VITE_USE_MOCK: $VITE_USE_MOCK
+  before_script:
+    - npm --prefix frontend ci
+    - npm --prefix frontend run build
+    - |
+      docker build frontend \
+      -t $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA \
+      -t $FRONTEND_IMAGE:latest \
+      --no-cache
+  script:
+    - docker-compose down frontend && docker-compose up frontend -d
+
+frontend-push-harbor:
+  tags:
+    - docker-socket-binding
+  stage: frontend-push-harbor
+  when: manual
+  image: docker:24.0.5
+  before_script:
+    - echo $HARBOR_PASSWORD | docker login --username $HARBOR_USER --password-stdin http://$HARBOR_ADDRESS
+  script:
+    - docker tag $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA $HARBOR_ADDRESS/$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker tag $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA $HARBOR_ADDRESS/$FRONTEND_IMAGE:latest
+    - docker push --all-tags $HARBOR_ADDRESS/$FRONTEND_IMAGE
+
+frontend-push-gar:
+  tags:
+    - docker-socket-binding
+  stage: frontend-push-gar
+  when: manual
+  image: docker:24.0.5
+  before_script:
+    - echo $GAR_SA_KEY > gcloud-auth.json
+    - cat gcloud-auth.json | docker login -u _json_key --password-stdin https://$GAR_ADDRESS
+  script:
+    - docker tag $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA $GAR_ADDRESS/$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker tag $FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA $GAR_ADDRESS/$FRONTEND_IMAGE:latest
+    - docker push --all-tags $GAR_ADDRESS/$FRONTEND_IMAGE
+
+frontend-deploy-harbor:
+  tags:
+    - docker-socket-binding
+  stage: frontend-deploy-harbor
+  when: manual
+  image: docker:24.0.5
+  variables:
+    FRONTEND_PORT: $FRONTEND_PORT
+    BACKEND_PORT: $BACKEND_PORT
+    VITE_USE_MOCK: $VITE_USE_MOCK
+  before_script:
+    - echo $HARBOR_PASSWORD | docker login --username $HARBOR_USER --password-stdin http://$HARBOR_ADDRESS
+  script:
+    - |
+      docker-compose pull && \
+      docker-compose down frontend && \
+      docker-compose up frontend -d"
+
+frontend-deploy-gar:
+  tags:
+    - docker-socket-binding
+  stage: frontend-deploy-gar
+  when: manual
+  image: docker:24.0.5
+  variables:
+    FRONTEND_PORT: $FRONTEND_PORT
+    BACKEND_PORT: $BACKEND_PORT
+    VITE_USE_MOCK: $VITE_USE_MOCK
+  before_script:
+    - echo $GAR_SA_KEY > gcloud-auth.json
+    - cat gcloud-auth.json | docker login -u _json_key --password-stdin https://$GAR_ADDRESS
+  script:
+    - |
+      docker-compose pull && \
+      docker-compose down frontend && \
+      docker-compose up frontend -d"
+
+frontend-destroy:
+  tags:
+    - docker-socket-binding
+  stage: frontend-destroy
+  when: manual
+  image: docker:24.0.5
+  script:
+    - docker-compose down frontend
+    - docker rmi -f $(docker images | grep -i ${FRONTEND_IMAGE} | awk '{print $3}') || true

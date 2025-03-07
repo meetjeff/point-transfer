@@ -30,7 +30,7 @@
         <p v-if="scannedTransaction.note"><strong>備註:</strong> {{ scannedTransaction.note }}</p>
         <p><strong>交易ID:</strong> {{ scannedTransaction.transactionId }}</p>
         <p v-if="scannedTransaction.expiresAt">
-          <strong>有效期至:</strong> {{ formatDate(scannedTransaction.expiresAt) }}
+          <strong>有效期至:</strong> <LocalTime :datetime="scannedTransaction.expiresAt" format="full" checkExpiry />
         </p>
       </div>
 
@@ -83,11 +83,13 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import QRCodeScanner from '../components/QRCodeScanner.vue';
 import { confirmTransaction } from '../services/api';
+import LocalTime from '../components/LocalTime.vue';
 
 export default {
   name: 'ReceivePointsView',
   components: {
-    QRCodeScanner
+    QRCodeScanner,
+    LocalTime
   },
   setup() {
     const store = useStore();

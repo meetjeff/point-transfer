@@ -16,7 +16,7 @@ async def get_transactions(current_user: User = Depends(get_current_user)):
     user_transactions = []
 
     for tx in transactions_db.values():
-        if tx["sender_id"] == current_user.user_id or tx["receiver_id"] == current_user.user_id:
+        if tx.get("sender_id") == current_user.user_id or tx.get("receiver_id") == current_user.user_id:
             user_transactions.append(Transaction(**tx))
 
     return user_transactions

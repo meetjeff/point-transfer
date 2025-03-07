@@ -33,7 +33,7 @@
         </thead>
         <tbody>
           <tr v-for="transaction in transactions" :key="transaction.transactionId">
-            <td>{{ formatDate(transaction.createdAt) }}</td>
+            <td><LocalTime :datetime="transaction.createdAt" format="full" /></td>
             <td>{{ transaction.senderId === userId ? '發送' : '接收' }}</td>
             <td :class="transaction.senderId === userId ? 'negative' : 'positive'">
               {{ transaction.sender === userId ? '-' : '+' }}{{ transaction.amount }}
@@ -54,9 +54,13 @@
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
+import LocalTime from '../components/LocalTime.vue';
 
 export default {
   name: 'DashboardView',
+  components: {
+    LocalTime
+  },
   setup() {
     const store = useStore();
     const isLoading = ref(true);

@@ -1,0 +1,24 @@
+include:
+  - local: frontend/frontend-ci.yml
+  - local: backend/backend-ci.yml
+
+variables:
+  HARBOR_USER: $HARBOR_USER
+  HARBOR_PASSWORD: $HARBOR_PASSWORD
+  HARBOR_ADDRESS: $HARBOR_ADDRESS
+  GAR_SA_KEY: $GAR_SA_KEY
+  GAR_ADDRESS: $GAR_ADDRESS
+
+stages:
+  - frontend-build-deploy
+  - frontend-push-harbor
+  - frontend-push-gar
+  - frontend-deploy-harbor
+  - frontend-deploy-gar
+  - frontend-destroy
+  - backend-build-deploy
+  - backend-push-harbor
+  - backend-push-gar
+  - backend-deploy-harbor
+  - backend-deploy-gar
+  - backend-destroy
