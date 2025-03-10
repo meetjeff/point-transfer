@@ -54,6 +54,14 @@
       </form>
     </div>
 
+    <div v-else-if="transactionSuccess" class="transaction-success">
+      <div class="success-icon">✓</div>
+      <h3>交易成功！</h3>
+      <p>XX幣已成功發送，金額：{{ transactionData.amount }} 點</p>
+      <p>即將返回首頁... <span class="countdown">{{ countdownTime }}</span>秒</p>
+      <button class="btn btn-primary" @click="handleReturn">立即返回</button>
+    </div>
+
     <div v-else class="transaction-result">
       <QRCodeGenerator
         :qr-code-value="qrCodeContent"
@@ -108,7 +116,10 @@ export default {
     const transactionData = ref(null);
     const qrCodeContent = ref('');
     const autoChecking = ref(false);
+    const transactionSuccess = ref(false);
+    const countdownTime = ref(5);
     let transactionCheckInterval = null;
+    let countdownInterval = null;
 
     // 從環境變數中獲取預設金額
     const quickAmounts = ref([
@@ -133,6 +144,25 @@ export default {
       return Math.ceil(diffMs / (1000 * 60));
     });
 
+    const startCountdown = () => {
+      countdownTime.value = 5;
+
+      // 清除可能存在的舊倒計時
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+      }
+
+      // 啟動倒計時
+      countdownInterval = setInterval(() => {
+        if (countdownTime.value > 1) {
+          countdownTime.value -= 1;
+        } else {
+          clearInterval(countdownInterval);
+          router.push('/');
+        }
+      }, 1000);
+    };
+
     // 定期檢查交易狀態的函數
     const startTransactionStatusCheck = (transactionId) => {
       if (!transactionId) return;
@@ -154,7 +184,7 @@ export default {
 
           // 如果交易已完成
           if (updatedTransaction.status === 'completed') {
-            console.log(`交易 ${transactionId} 已完成，準備跳轉到首頁`);
+            console.log(`交易 ${transactionId} 已完成，顯示成功提示`);
 
             // 停止定期檢查
             clearInterval(transactionCheckInterval);
@@ -164,10 +194,11 @@ export default {
             // 重新獲取用戶資料以更新餘額
             await store.dispatch('fetchCurrentUser');
 
-            // 顯示成功信息3秒後自動跳轉到首頁
-            setTimeout(() => {
-              router.push('/');
-            }, 3000);
+            // 顯示交易成功提示
+            transactionSuccess.value = true;
+
+            // 啟動倒計時
+            startCountdown();
           }
         } catch (err) {
           console.error(`檢查交易 ${transactionId} 狀態出錯:`, err);
@@ -215,8 +246,14 @@ export default {
         clearInterval(transactionCheckInterval);
         transactionCheckInterval = null;
       }
-      autoChecking.value = false;
 
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+
+      autoChecking.value = false;
+      transactionSuccess.value = false;
       transactionData.value = null;
       qrCodeContent.value = '';
       amount.value = '';
@@ -230,7 +267,24 @@ export default {
         clearInterval(transactionCheckInterval);
         transactionCheckInterval = null;
       }
+
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+
       autoChecking.value = false;
+      transactionSuccess.value = false;
+
+      router.push('/');
+    };
+
+    const handleReturn = () => {
+      // 清除計時器
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
 
       router.push('/');
     };
@@ -267,6 +321,11 @@ export default {
         clearInterval(transactionCheckInterval);
         transactionCheckInterval = null;
       }
+
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
     });
 
     return {
@@ -280,9 +339,12 @@ export default {
       isAmountValid,
       getExpiryMinutes,
       autoChecking,
+      transactionSuccess,
+      countdownTime,
       handleGenerateQR,
       handleReset,
       handleCancel,
+      handleReturn,
       handleCancelTransaction,
       quickAmounts,
       selectQuickAmount
@@ -425,6 +487,55 @@ textarea {
 
 .transaction-result {
   text-align: center;
+}
+
+.transaction-success {
+  text-align: center;
+  background-color: #d4edda;
+  padding: 2rem;
+  border-radius: 8px;
+  color: #155724;
+  margin: 1rem 0;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1rem;
+  background-color: #28a745;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  animation: scaleIn 0.5s ease;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+.transaction-success h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.transaction-success p {
+  margin-bottom: 0.8rem;
+}
+
+.countdown {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #155724;
 }
 
 .transaction-info {
