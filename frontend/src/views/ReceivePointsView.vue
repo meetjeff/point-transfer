@@ -82,7 +82,7 @@ import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import QRCodeScanner from '../components/QRCodeScanner.vue';
-import { confirmTransaction } from '../services/api';
+import { confirmTransaction, getTransaction } from '../services/api';
 import LocalTime from '../components/LocalTime.vue';
 
 export default {
@@ -142,26 +142,12 @@ export default {
       isLoading.value = true;
 
       try {
-        // 這裡應該有一個API來獲取交易詳情
-        // const transaction = await getTransactionDetails(manualTransactionId.value);
-
-        // 模擬API響應
-        setTimeout(() => {
-          // 假設API返回的交易數據
-          const mockTransaction = {
-            transactionId: manualTransactionId.value,
-            amount: 100,
-            senderId: 'mockSenderId',
-            senderName: '發送方用戶',
-            timestamp: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 30 * 60000).toISOString() // 30分鐘後過期
-          };
-
-          scannedTransaction.value = mockTransaction;
-          isLoading.value = false;
-        }, 1000);
+        // 使用新添加的API獲取交易詳情
+        const transaction = await getTransaction(manualTransactionId.value);
+        scannedTransaction.value = transaction;
       } catch (err) {
         error.value = err.message || '獲取交易資料失敗';
+      } finally {
         isLoading.value = false;
       }
     };
@@ -279,7 +265,6 @@ h2, h3 {
 .instructions {
   text-align: center;
   margin-bottom: 1.5rem;
-  color: #2c3e50;
 }
 
 .transaction-details {

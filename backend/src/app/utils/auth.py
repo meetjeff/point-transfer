@@ -81,16 +81,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         print("令牌解析失敗，認證失敗")
         raise credentials_exception
 
-    # 如果令牌中包含用戶數據，直接使用
-    if user_data:
-        print(f"使用令牌中的用戶數據")
-        return User(**user_data)
-
-    # 否則從數據庫中獲取用戶數據
+    # 從數據庫中獲取用戶數據
     user = users_db.get(user_email)
     print(f"通過Email查找用戶: {user_email}, 結果: {'找到' if user else '未找到'}")
     if user is None:
         print("未找到用戶，認證失敗")
         raise credentials_exception
 
+    print(f"獲取到最新的用戶餘額: {user.get('balance', 0)}")
     return User(**user)

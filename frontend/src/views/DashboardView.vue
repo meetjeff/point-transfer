@@ -2,7 +2,12 @@
   <div class="dashboard-container">
     <div class="dashboard-header">
       <h2>歡迎，{{ user ? user.name : '用戶' }}</h2>
-      <p class="balance">XX幣餘額: <span>{{ user ? user.balance : 0 }}</span></p>
+      <p class="balance">XX幣餘額: <span>{{ directBalance !== null ? directBalance : (user ? user.balance : 0) }}</span>
+        <button @click="refreshUserData" class="refresh-btn" title="刷新餘額">
+          <i class="refresh-icon">↻</i>
+        </button>
+      </p>
+      <p class="last-update" v-if="lastUpdateTime">最後更新: {{ lastUpdateTime }}</p>
 
       <div class="action-buttons">
         <router-link to="/send" class="btn btn-primary">發送XX幣</router-link>
@@ -36,10 +41,10 @@
             <td><LocalTime :datetime="transaction.createdAt" format="full" /></td>
             <td>{{ transaction.senderId === userId ? '發送' : '接收' }}</td>
             <td :class="transaction.senderId === userId ? 'negative' : 'positive'">
-              {{ transaction.sender === userId ? '-' : '+' }}{{ transaction.amount }}
+              {{ transaction.senderId === userId ? '-' : '+' }}{{ transaction.amount }}
             </td>
             <td>
-              {{ transaction.sender === userId
+              {{ transaction.senderId === userId
                 ? (transaction.receiverName || '等待接收中')
                 : transaction.senderName }}
             </td>
@@ -52,9 +57,10 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useStore } from 'vuex';
 import LocalTime from '../components/LocalTime.vue';
+import { getDirectUserBalance } from '../services/auth';
 
 export default {
   name: 'DashboardView',
@@ -64,6 +70,9 @@ export default {
   setup() {
     const store = useStore();
     const isLoading = ref(true);
+    let refreshInterval = null;
+    const lastUpdateTime = ref('');
+    const directBalance = ref(null);
 
     const user = computed(() => store.getters.currentUser);
     const transactions = computed(() => store.getters.transactions);
@@ -72,6 +81,11 @@ export default {
     const formatDate = (dateString) => {
       const date = new Date(dateString);
       return date.toLocaleDateString();
+    };
+
+    const updateTimestamp = () => {
+      const now = new Date();
+      lastUpdateTime.value = now.toLocaleTimeString();
     };
 
     const translateStatus = (status) => {
@@ -83,23 +97,56 @@ export default {
       return statusMap[status] || status;
     };
 
-    onMounted(async () => {
+    const fetchDirectBalance = async () => {
       try {
-        await store.dispatch('fetchTransactions');
+        console.log('獲取最新餘額');
+        const balance = await getDirectUserBalance();
+        directBalance.value = balance;
+        updateTimestamp();
+        console.log('餘額已更新：', balance);
       } catch (error) {
-        console.error('獲取交易記錄失敗', error);
+        console.error('獲取餘額失敗:', error);
+      }
+    };
+
+    onMounted(async () => {
+      isLoading.value = true;
+
+      try {
+        await fetchDirectBalance();
+
+        console.log('開始獲取交易記錄...');
+        await store.dispatch('fetchTransactions');
+        console.log('交易記錄獲取成功！');
+      } catch (error) {
+        console.error('獲取資料失敗:', error);
       } finally {
         isLoading.value = false;
+      }
+
+      refreshInterval = setInterval(async () => {
+        await fetchDirectBalance();
+      }, 30000);
+    });
+
+    onUnmounted(() => {
+      if (refreshInterval) {
+        console.log('清除餘額更新定時器');
+        clearInterval(refreshInterval);
+        refreshInterval = null;
       }
     });
 
     return {
       user,
+      directBalance,
       transactions,
       userId,
       isLoading,
       formatDate,
-      translateStatus
+      translateStatus,
+      refreshUserData: fetchDirectBalance,
+      lastUpdateTime
     };
   }
 }
@@ -129,11 +176,45 @@ h2 {
 .balance {
   font-size: 1.25rem;
   margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .balance span {
   font-weight: bold;
   color: #27ae60;
+}
+
+.last-update {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  margin-top: -1rem;
+  margin-bottom: 1rem;
+}
+
+.refresh-btn {
+  background: none;
+  border: none;
+  color: #3498db;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.refresh-btn:hover {
+  background-color: #eef7fc;
+  transform: rotate(30deg);
+}
+
+.refresh-icon {
+  font-style: normal;
+  font-size: 1.2rem;
 }
 
 .action-buttons {

@@ -1,7 +1,7 @@
 <template>
   <div class="send-points-container">
     <h2>發送XX幣</h2>
-    <p class="current-balance">目前餘額: {{ user ? user.balance : 0 }}</p>
+    <!-- <p class="current-balance">目前餘額: {{ user ? user.balance : 0 }}</p> -->
 
     <div v-if="error" class="error-message">
       {{ error }}
@@ -66,6 +66,11 @@
         <p>請讓接收方掃描上方 QR Code</p>
         <p class="note" v-if="transactionData.note">備註: {{ transactionData.note }}</p>
         <p class="warning">此交易將在 {{ getExpiryMinutes }} 分鐘後失效</p>
+
+        <p v-if="autoChecking" class="auto-checking">
+          <span class="checking-indicator"></span>
+          系統正在自動檢查交易狀態，完成後將自動跳轉至首頁
+        </p>
       </div>
 
       <div class="transaction-actions">
@@ -81,11 +86,11 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import QRCodeGenerator from '../components/QRCodeGenerator.vue';
-import { prepareTransaction } from '../services/api';
+import { prepareTransaction, getTransaction } from '../services/api';
 
 export default {
   name: 'SendPointsView',
@@ -102,6 +107,8 @@ export default {
     const isLoading = ref(false);
     const transactionData = ref(null);
     const qrCodeContent = ref('');
+    const autoChecking = ref(false);
+    let transactionCheckInterval = null;
 
     // 從環境變數中獲取預設金額
     const quickAmounts = ref([
@@ -126,6 +133,49 @@ export default {
       return Math.ceil(diffMs / (1000 * 60));
     });
 
+    // 定期檢查交易狀態的函數
+    const startTransactionStatusCheck = (transactionId) => {
+      if (!transactionId) return;
+
+      // 清除現有的計時器
+      if (transactionCheckInterval) {
+        clearInterval(transactionCheckInterval);
+      }
+
+      autoChecking.value = true;
+      console.log(`開始檢查交易 ${transactionId} 的狀態...`);
+
+      // 設置一個定期檢查交易狀態的計時器，每3秒檢查一次
+      transactionCheckInterval = setInterval(async () => {
+        try {
+          // 獲取最新的交易狀態
+          const updatedTransaction = await getTransaction(transactionId);
+          console.log(`交易 ${transactionId} 當前狀態: ${updatedTransaction.status}`);
+
+          // 如果交易已完成
+          if (updatedTransaction.status === 'completed') {
+            console.log(`交易 ${transactionId} 已完成，準備跳轉到首頁`);
+
+            // 停止定期檢查
+            clearInterval(transactionCheckInterval);
+            transactionCheckInterval = null;
+            autoChecking.value = false;
+
+            // 重新獲取用戶資料以更新餘額
+            await store.dispatch('fetchCurrentUser');
+
+            // 顯示成功信息3秒後自動跳轉到首頁
+            setTimeout(() => {
+              router.push('/');
+            }, 3000);
+          }
+        } catch (err) {
+          console.error(`檢查交易 ${transactionId} 狀態出錯:`, err);
+          // 出錯時不停止檢查，繼續嘗試
+        }
+      }, 3000); // 每3秒檢查一次
+    };
+
     const handleGenerateQR = async () => {
       if (!isAmountValid.value) {
         error.value = '請輸入有效的XX幣金額（必須大於0且不超過您的餘額）';
@@ -149,6 +199,9 @@ export default {
         qrCodeContent.value = JSON.stringify(signedTransaction);
         console.log('準備發送交易數據:', JSON.stringify(transactionRequest, null, 2));
 
+        // 開始檢查交易狀態
+        startTransactionStatusCheck(signedTransaction.transactionId);
+
       } catch (err) {
         error.value = err.message || '生成交易失敗，請稍後再試';
       } finally {
@@ -157,6 +210,13 @@ export default {
     };
 
     const handleReset = () => {
+      // 清除計時器
+      if (transactionCheckInterval) {
+        clearInterval(transactionCheckInterval);
+        transactionCheckInterval = null;
+      }
+      autoChecking.value = false;
+
       transactionData.value = null;
       qrCodeContent.value = '';
       amount.value = '';
@@ -165,6 +225,13 @@ export default {
     };
 
     const handleCancel = () => {
+      // 清除計時器
+      if (transactionCheckInterval) {
+        clearInterval(transactionCheckInterval);
+        transactionCheckInterval = null;
+      }
+      autoChecking.value = false;
+
       router.push('/');
     };
 
@@ -194,6 +261,14 @@ export default {
       await handleGenerateQR();
     };
 
+    // 組件卸載時清除計時器
+    onUnmounted(() => {
+      if (transactionCheckInterval) {
+        clearInterval(transactionCheckInterval);
+        transactionCheckInterval = null;
+      }
+    });
+
     return {
       user,
       amount,
@@ -204,6 +279,7 @@ export default {
       qrCodeContent,
       isAmountValid,
       getExpiryMinutes,
+      autoChecking,
       handleGenerateQR,
       handleReset,
       handleCancel,
@@ -218,8 +294,8 @@ export default {
 <style scoped>
 .send-points-container {
   max-width: 600px;
-  margin: 2rem auto;
-  padding: 2rem;
+  margin: 1.5rem auto;
+  padding: 1.5rem;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -228,13 +304,13 @@ export default {
 .quick-amount-buttons {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 1.5rem;
+  gap: 8px;
+  margin-bottom: 1rem;
 }
 
 .quick-amount-btn {
   flex: 1;
-  padding: 0.75rem;
+  padding: 0.6rem;
   background-color: #3498db;
   color: white;
   border: none;
@@ -254,22 +330,22 @@ export default {
 }
 
 h2 {
-  margin-bottom: 1rem;
+  margin-bottom: 0.7rem;
   color: #333;
 }
 
 .current-balance {
   font-size: 1.125rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   color: #2c3e50;
 }
 
 .error-message {
   background-color: #f8d7da;
   color: #721c24;
-  padding: 0.75rem;
+  padding: 0.6rem;
   border-radius: 4px;
-  margin-bottom: 1rem;
+  margin-bottom: 0.8rem;
 }
 
 .send-form {
@@ -278,36 +354,36 @@ h2 {
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
   font-weight: bold;
   color: #333;
 }
 
 input, textarea {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.6rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
 }
 
 textarea {
-  min-height: 100px;
+  min-height: 80px;
   resize: vertical;
 }
 
 .form-actions {
   display: flex;
-  gap: 1rem;
+  gap: 0.8rem;
 }
 
 .btn {
-  padding: 0.75rem 1.5rem;
+  padding: 0.6rem 1.2rem;
   border: none;
   border-radius: 4px;
   font-size: 1rem;
@@ -352,23 +428,59 @@ textarea {
 }
 
 .transaction-info {
-  margin: 1.5rem 0;
+  margin: 1rem 0;
 }
 
 .note {
-  margin: 0.5rem 0;
+  margin: 0.4rem 0;
   color: #2c3e50;
 }
 
 .warning {
   color: #e74c3c;
   font-weight: bold;
+  margin: 0.4rem 0;
 }
 
 .transaction-actions {
   display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.auto-checking {
+  margin-top: 0.8rem;
+  padding: 0.4rem;
+  background-color: #e8f4fd;
+  color: #3498db;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.checking-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #3498db;
+  margin-right: 0.5rem;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
 }
 
 @media (max-width: 768px) {
@@ -377,7 +489,7 @@ textarea {
   }
 
   .btn {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
   }
 }
 </style>

@@ -19,7 +19,14 @@
         </p>
       </div>
 
-      <div class="qr-settings">
+      <div class="settings-toggle">
+        <button @click="showSettings = !showSettings" class="toggle-btn">
+          {{ showSettings ? '隱藏設置選項' : '顯示設置選項' }}
+          <span class="toggle-icon">{{ showSettings ? '▲' : '▼' }}</span>
+        </button>
+      </div>
+
+      <div class="qr-settings" v-if="showSettings">
         <div class="setting">
           <label>QR Code 尺寸:</label>
           <select v-model="qrSize">
@@ -91,13 +98,14 @@ export default {
     }
   },
   setup(props) {
-    // 可調整的二維碼設置
+    // 可調整的QR Code設置
     const qrLevel = ref('L'); // 預設使用低級別的錯誤糾正
     const qrSize = ref(400); // 預設使用更大尺寸
     const qrMargin = ref(4); // 預設使用較大邊距
     const backgroundColor = ref('#ffffff');
     const foregroundColor = ref('#000000');
     const useLightMode = ref(true); // 預設使用簡化模式
+    const showSettings = ref(false); // 預設隱藏設置選項
 
     const formatExpiryTime = computed(() => {
       if (!props.expiryTime) return '';
@@ -164,7 +172,8 @@ export default {
       qrMargin,
       backgroundColor,
       foregroundColor,
-      useLightMode
+      useLightMode,
+      showSettings
     };
   }
 }
@@ -211,13 +220,47 @@ export default {
   font-weight: bold;
 }
 
-.qr-settings {
+.settings-toggle {
   margin-top: 1.5rem;
+  text-align: center;
+}
+
+.toggle-btn {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+  background-color: #e9ecef;
+}
+
+.toggle-icon {
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.qr-settings {
+  margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid #eee;
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .setting {

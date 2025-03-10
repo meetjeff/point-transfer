@@ -65,9 +65,9 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { confirmPublicTransaction } from '../services/api';
+import { confirmPublicTransaction, getPublicTransaction } from '../services/api';
 import LocalTime from '../components/LocalTime.vue';
 
 export default {
@@ -98,31 +98,43 @@ export default {
       }
 
       try {
-        // 這裡應該發起API請求獲取交易詳情
-        // 暫時使用URL参数中的數據
-        if (route.query.data) {
-          const decodedData = decodeURIComponent(route.query.data);
-          console.log('解析交易數據:', decodedData);
-          transaction.value = JSON.parse(decodedData);
+        // 從API獲取交易詳情
+        isLoading.value = true;
+        console.log('通過API獲取交易詳情:', transactionId);
+        transaction.value = await getPublicTransaction(transactionId);
+        console.log('API獲取交易詳情成功:', transaction.value);
+        isLoading.value = false;
+      } catch (err) {
+        isLoading.value = false;
+        console.error('通過API獲取交易詳情失敗:', err);
 
-          // 驗證交易數據是否合法
-          if (!transaction.value.transactionId) {
-            error.value = '交易資料不完整 (缺少交易ID)';
-          } else if (transaction.value.transactionId !== transactionId) {
-            console.warn('URL中的交易ID與數據中的不符');
-            // 優先使用URL中的交易ID
-            transaction.value.transactionId = transactionId;
+        // 顯示更詳細的錯誤信息
+        const errorDetail = err.response?.data?.detail || '';
+        const errorStatus = err.response?.status;
+        console.error('詳細錯誤信息:', { message: err.message, detail: errorDetail, status: errorStatus });
+
+        // 如果API獲取失敗，嘗試從URL參數中解析
+        if (route.query.data) {
+          try {
+            const decodedData = decodeURIComponent(route.query.data);
+            console.log('嘗試從URL解析交易數據:', decodedData);
+            transaction.value = JSON.parse(decodedData);
+
+            // 驗證交易數據是否合法
+            if (!transaction.value.transactionId) {
+              error.value = '交易資料不完整 (缺少交易ID)';
+            } else if (transaction.value.transactionId !== transactionId) {
+              console.warn('URL中的交易ID與數據中的不符');
+              // 優先使用URL中的交易ID
+              transaction.value.transactionId = transactionId;
+            }
+          } catch (parseErr) {
+            error.value = '解析交易資料失敗: ' + (parseErr.message || '未知錯誤');
+            console.error('解析URL交易數據錯誤:', parseErr);
           }
         } else {
-          // 如果URL中沒有data參數，嘗試從API獲取交易詳情
-          error.value = '交易資料不完整 (缺少交易數據)';
-          // 這裡可以改為從API獲取交易詳情
-          // const result = await getTransactionDetails(transactionId);
-          // transaction.value = result;
+          error.value = '獲取交易詳情失敗: ' + (err.message || '未知錯誤');
         }
-      } catch (err) {
-        error.value = '解析交易資料失敗: ' + (err.message || '未知錯誤');
-        console.error('解析交易數據錯誤:', err);
       }
     });
 
@@ -160,6 +172,11 @@ export default {
         console.log('交易確認結果:', result);
         transaction.value = result;
         success.value = true;
+
+        // 顯示成功信息5秒後自動跳轉到登入頁面
+        setTimeout(() => {
+          router.push('/login');
+        }, 5000);
       } catch (err) {
         console.error('交易確認錯誤:', err, '錯誤響應:', err.response);
 
@@ -195,7 +212,7 @@ export default {
         path: '/register',
         query: {
           transaction: transaction.value.transactionId,
-          data: route.query.data
+          data: JSON.stringify(transaction.value)
         }
       });
     };

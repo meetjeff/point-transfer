@@ -206,3 +206,89 @@ export const confirmPublicTransaction = async (transactionId, email, name) => {
     throw new Error(error.response?.data?.detail || '領取失敗');
   }
 };
+
+// 獲取公共交易詳情的方法
+export const getPublicTransaction = async (transactionId) => {
+  if (!transactionId) {
+    throw new Error('缺少交易ID');
+  }
+
+  if (USE_MOCK) {
+    console.log('獲取模擬公共交易詳情', { transactionId });
+    return new Promise((resolve, reject) => {
+      // 查找交易
+      const transaction = transactions.find(t => t.transactionId === transactionId);
+
+      if (!transaction) {
+        console.error('交易不存在:', {
+          transactionId,
+          可用交易IDs: transactions.map(t => t.transactionId)
+        });
+        reject(new Error('交易不存在'));
+        return;
+      }
+
+      setTimeout(() => {
+        resolve(transaction);
+      }, 500);
+    });
+  }
+
+  try {
+    const response = await axios.get(`${API_URL}/transactions/public/${transactionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('獲取公共交易詳情API錯誤:', error);
+    if (error.response) {
+      console.error('API錯誤響應:', {
+        狀態: error.response.status,
+        數據: error.response.data,
+        頭信息: error.response.headers
+      });
+    }
+    throw new Error(error.response?.data?.detail || '獲取交易詳情失敗');
+  }
+};
+
+// 獲取單個交易詳情的方法
+export const getTransaction = async (transactionId) => {
+  if (!transactionId) {
+    throw new Error('缺少交易ID');
+  }
+
+  if (USE_MOCK) {
+    console.log('獲取模擬交易詳情', { transactionId });
+    return new Promise((resolve, reject) => {
+      // 查找交易
+      const transaction = transactions.find(t => t.transactionId === transactionId);
+
+      if (!transaction) {
+        console.error('交易不存在:', {
+          transactionId,
+          可用交易IDs: transactions.map(t => t.transactionId)
+        });
+        reject(new Error('交易不存在'));
+        return;
+      }
+
+      setTimeout(() => {
+        resolve(transaction);
+      }, 500);
+    });
+  }
+
+  try {
+    const response = await axios.get(`${API_URL}/transactions/${transactionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('獲取交易詳情API錯誤:', error);
+    if (error.response) {
+      console.error('API錯誤響應:', {
+        狀態: error.response.status,
+        數據: error.response.data,
+        頭信息: error.response.headers
+      });
+    }
+    throw new Error(error.response?.data?.detail || '獲取交易詳情失敗');
+  }
+};

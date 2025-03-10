@@ -35,7 +35,7 @@ async def register(user_data: UserCreate):
         email=user_data.email,
         name=user_data.name,
         hashed_password=hashed_password,
-        balance=100  # New users get 100 points initial balance
+        balance=1000  # New users get 1000 points initial balance
     )
 
     # Store user data using email as key
@@ -62,22 +62,16 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 準備用戶數據（移除敏感信息）
-    user_data = {
-        "user_id": user["user_id"],
-        "email": user["email"],
-        "name": user["name"],
-        "balance": user["balance"],
-        "created_at": user["created_at"].isoformat() if isinstance(user["created_at"], datetime) else user["created_at"]
-    }
+    # 不再在令牌中存儲完整用戶數據
+    # 只保存識別信息，每次API調用時從數據庫獲取最新數據
 
-    # Create access token with user data and email
+    # Create access token with user ID and email only
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={
             "sub": user["user_id"],
-            "email": user["email"],  # 將email也包含在JWT中
-            "user": user_data
+            "email": user["email"]  # 只包含用戶ID和email
+            # 不再包含完整用戶數據
         },
         expires_delta=access_token_expires
     )
